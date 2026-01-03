@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-
-from models import PickaxeSpec
+from dataclasses import dataclass
 
 
 class BlockId(Enum):
@@ -157,6 +156,13 @@ LAVA_BLOCKS: list[BlockId] = [
     BlockId.LAVABOTTOMLEFT,
     BlockId.LAVABOTTOMRIGHT,
 ]
+
+@dataclass
+class PickaxeSpec:
+    title: str
+    emoji: str
+    durability: int
+    cost: dict
 
 PICKAXE_SPEC: dict[PickaxeId, PickaxeSpec] = {
     PickaxeId.WOODEN: PickaxeSpec("дерев'яна", "🪵", 32, {}),

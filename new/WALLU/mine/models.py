@@ -13,14 +13,6 @@ class Block:
 
 
 @dataclass
-class PickaxeSpec:
-    title: str
-    emoji: str
-    durability: int
-    cost: dict
-
-
-@dataclass
 class Board:
     width: int
     height: int
