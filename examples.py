@@ -1,3 +1,29 @@
+from sqlalchemy.ext.asyncio import create_async_engine
+from discord.ui import Button, View
+from discord import ButtonStyle, Interaction
+
+async def removecase(self, ctx, number: int):
+    pass
+
+    button = Button(style=ButtonStyle.green, label="Так")
+    view = View(disable_on_timeout=True)
+    view.add_item(button)
+
+    async def yes(inter: Interaction):
+        nonlocal case, member
+        pass
+
+    button.callback = yes
+
+    case = 123
+    member = await self.client.get_or_fetch_user(case[1])
+
+    pass
+
+def syncrun():
+    global engine
+    engine = create_async_engine("sqlite+aiosqlite:///database.db")
+
 with open("data.txt", "r") as f:
     data = f.read()
 
