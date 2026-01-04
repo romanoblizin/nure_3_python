@@ -145,7 +145,7 @@ BLOCK_STR: dict[BlockId, str] = {
 
 RESOURCE_BLOCKS: list[BlockId] = list(BLOCK_DB_FIELD.keys())
 
-LAVA_BLOCKS: list[BlockId] = [
+LAVA_BLOCKS: frozenset[BlockId] = {
     BlockId.LAVA,
     BlockId.LAVATOP,
     BlockId.LAVABOTTOM,
@@ -155,7 +155,7 @@ LAVA_BLOCKS: list[BlockId] = [
     BlockId.LAVATOPRIGHT,
     BlockId.LAVABOTTOMLEFT,
     BlockId.LAVABOTTOMRIGHT,
-]
+}
 
 @dataclass
 class PickaxeSpec:
