@@ -94,7 +94,7 @@ async def get_or_create_today_mid_rates(
     rows = list(res.scalars())
 
     if rows:
-        rates: dict[BlockId, float] = {row.resource: float(row.rate) for row in rows}
+        rates: dict[BlockId, float] = { row.resource: float(row.rate) for row in rows }
         rates.setdefault(BlockId.DIAMOND, 1.0)
         return rates
 
@@ -121,22 +121,22 @@ def get_spread_for_trade_value(diamonds: float) -> float:
     return 0.20
 
 
-def compute_sell_rate_for_trade(
+def compute_rate_for_trade(
     mid_rate: float,
     trade_value_in_diamonds: float,
+    is_buy : bool
 ) -> float:
     spread = get_spread_for_trade_value(trade_value_in_diamonds)
-    sell_rate = mid_rate * (1.0 - spread / 2.0)
-    return sell_rate
+    rate = mid_rate * (1.0 + spread * (1 if is_buy else -1) / 2.0)
+    return rate
 
 
-def compute_buy_rate_for_trade(
-    mid_rate: float,
-    trade_value_in_diamonds: float,
-) -> float:
-    spread = get_spread_for_trade_value(trade_value_in_diamonds)
-    buy_rate = mid_rate * (1.0 + spread / 2.0)
-    return buy_rate
+def compute_sell_rate_for_trade(mid_rate: float, trade_value_in_diamonds: float) -> float:
+    return compute_rate_for_trade(mid_rate, trade_value_in_diamonds, False)
+
+
+def compute_buy_rate_for_trade(mid_rate: float, trade_value_in_diamonds: float) -> float:
+    return compute_rate_for_trade(mid_rate, trade_value_in_diamonds, True)
 
 
 def sell_resource(

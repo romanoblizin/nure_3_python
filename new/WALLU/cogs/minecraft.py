@@ -686,6 +686,11 @@ class TradeView(discord.ui.View):
         embed.description = self.calc_preview()
         await interaction.response.edit_message(embed=embed, view=self)
 
+    async def change_amount(self, interaction: discord.Interaction, operation):
+        if not await self.check_author(interaction): return
+        self.amount = operation(self.amount)
+        await self.refresh_message(interaction)
+
     @discord.ui.select(
         placeholder="Обери ресурс...", min_values=1, max_values=1, row=0, options=[]
     )
@@ -696,56 +701,45 @@ class TradeView(discord.ui.View):
 
     @discord.ui.button(label="-1", style=discord.ButtonStyle.gray, row=1)
     async def minus1(self, btn: discord.ui.Button, interaction: discord.Interaction):
-        if not await self.check_author(interaction): return
-        self.amount -= 1 
-        await self.refresh_message(interaction)
+        await self.change_amount(interaction, lambda x: x-1)
 
     @discord.ui.button(label="-4", style=discord.ButtonStyle.gray, row=1)
     async def minus4(self, btn: discord.ui.Button, interaction: discord.Interaction):
-        if not await self.check_author(interaction): return
-        self.amount -= 4
-        await self.refresh_message(interaction)
+        await self.change_amount(interaction, lambda x: x-4)
 
     @discord.ui.button(label="-16", style=discord.ButtonStyle.gray, row=1)
     async def minus16(self, btn: discord.ui.Button, interaction: discord.Interaction):
-        if not await self.check_author(interaction): return
-        self.amount -= 16
-        await self.refresh_message(interaction)
+        await self.change_amount(interaction, lambda x: x-16)
 
     @discord.ui.button(label="мін.", style=discord.ButtonStyle.gray, row=1)
     async def min(self, btn: discord.ui.Button, interaction: discord.Interaction):
-        if not await self.check_author(interaction): return
-        self.amount = 1
-        await self.refresh_message(interaction)
+        await self.change_amount(interaction, lambda _: 1)
 
     @discord.ui.button(label="+1", style=discord.ButtonStyle.gray, row=2)
     async def plus1(self, btn: discord.ui.Button, interaction: discord.Interaction):
-        if not await self.check_author(interaction): return
-        self.amount += 1
-        await self.refresh_message(interaction)
+        await self.change_amount(interaction, lambda x: x+1)
 
     @discord.ui.button(label="+4", style=discord.ButtonStyle.gray, row=2)
     async def plus4(self, btn: discord.ui.Button, interaction: discord.Interaction):
-        if not await self.check_author(interaction): return
-        self.amount += 4
-        await self.refresh_message(interaction)
+        await self.change_amount(interaction, lambda x: x+4)
 
     @discord.ui.button(label="+16", style=discord.ButtonStyle.gray, row=2)
     async def plus16(self, btn: discord.ui.Button, interaction: discord.Interaction):
-        if not await self.check_author(interaction): return
-        self.amount += 16
-        await self.refresh_message(interaction)
+        await self.change_amount(interaction, lambda x: x+16)
 
     @discord.ui.button(label="макс.", style=discord.ButtonStyle.gray, row=2)
-    async def max(self, btn: discord.ui.Button, interaction: discord.Interaction):
-        if not await self.check_author(interaction): return
-    
+    async def max(self, btn: discord.ui.Button, interaction: discord.Interaction):    
         if self.mode:
             self.amount = int(getattr(self.player, BLOCK_DB_FIELD[BlockId.DIAMOND], 0))
         else:
             self.amount = int(getattr(self.player, BLOCK_DB_FIELD[self.res], 0))
 
-        await self.refresh_message(interaction)
+        await self.change_amount(
+            interaction,
+            lambda _:
+                int(getattr(self.player, BLOCK_DB_FIELD[BlockId.DIAMOND], 0)) if self.mode else
+                int(getattr(self.player, BLOCK_DB_FIELD[self.res], 0))
+        )
 
     @discord.ui.button(label="Продаж", style=discord.ButtonStyle.blurple, row=3)
     async def btn_mode(self, btn: discord.ui.Button, interaction: discord.Interaction):
@@ -867,21 +861,40 @@ class Minecraft(commands.Cog):
         totems = int(getattr(player, "totems", 0))
         total_blocks = int(getattr(player, "total_blocks_mined", 0))
 
+        def line(*rows: str) -> str:
+            return " ".join(rows)
+
+        def prettify(amount: int, emoji: str) -> str:
+            return f"**{amount}**x{emoji}"
+
+        def get_data(bid: BlockId) -> tuple[int, str]:
+            return data.get(bid, 0), BLOCK_EMOJI[bid]        
+
         data = [
-            f"**{total_blocks}**x⛏\t\t"
-            f"**{deaths}**x{BLOCK_EMOJI[BlockId.LAVA]}\t\t"
-            f"**{totems}**x🪆",
-            f"**{data.get(BlockId.STONE,0)}**x{BLOCK_EMOJI[BlockId.STONE]}\t\t"
-            f"**{other}**x{BLOCK_EMOJI[BlockId.BEDROCK]}\t\t"
-            f"**{data.get(BlockId.ANVIL,0)}**x{BLOCK_EMOJI[BlockId.ANVIL]}",
-            f"**{data.get(BlockId.COAL,0)}**x{BLOCK_EMOJI[BlockId.COAL]}\t\t"
-            f"**{data.get(BlockId.IRON,0)}**x{BLOCK_EMOJI[BlockId.IRON]}\t\t"
-            f"**{data.get(BlockId.GOLD,0)}**x{BLOCK_EMOJI[BlockId.GOLD]}",
-            f"**{data.get(BlockId.COPPER,0)}**x{BLOCK_EMOJI[BlockId.COPPER]}\t\t"
-            f"**{data.get(BlockId.LAPIS,0)}**x{BLOCK_EMOJI[BlockId.LAPIS]}\t\t"
-            f"**{data.get(BlockId.REDSTONE,0)}**x{BLOCK_EMOJI[BlockId.REDSTONE]}\t\t",
-            f"**{data.get(BlockId.EMERALD,0)}**x{BLOCK_EMOJI[BlockId.EMERALD]}\t\t"
-            f"**{data.get(BlockId.DIAMOND,0)}**x{BLOCK_EMOJI[BlockId.DIAMOND]}"
+            line(
+                prettify(total_blocks, "⛏"),
+                prettify(deaths, BLOCK_EMOJI[BlockId.LAVA]),
+                prettify(totems, "🪆"),
+            ),
+            line(
+                prettify(*get_data(BlockId.STONE)),
+                prettify(other, BLOCK_EMOJI[BlockId.BEDROCK]),
+                prettify(*get_data(BlockId.ANVIL)),
+            ),
+            line(
+                prettify(*get_data(BlockId.COAL)),
+                prettify(*get_data(BlockId.IRON)),
+                prettify(*get_data(BlockId.GOLD)),
+            ),
+            line(
+                prettify(*get_data(BlockId.COPPER)),
+                prettify(*get_data(BlockId.LAPIS)),
+                prettify(*get_data(BlockId.REDSTONE)),
+            ),
+            line(
+                prettify(*get_data(BlockId.EMERALD)),
+                prettify(*get_data(BlockId.DIAMOND)),
+            ),
         ]
 
         await getembed(

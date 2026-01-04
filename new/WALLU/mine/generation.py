@@ -52,40 +52,49 @@ def _choice_with_weights(weights: dict[BlockId, float]) -> BlockId:
     return random.choices(population, weights=values, k=1)[0]
 
 
-# rewrite
+
 def render_nearby_blocks(cfg: MineConfig, session: MineSession, height: int, column: int):
-    top_block = get_or_generate_block(cfg, session, height + 1, column)
-    bottom_block = get_or_generate_block(cfg, session, height - 1, column)
-    left_block = get_or_generate_block(cfg, session, height, column - 1)
-    right_block = get_or_generate_block(cfg, session, height, column + 1)
+    deltas: dict [str, tuple[int, int]] = {
+        "top": (1, 0),
+        "bottom": (-1, 0),
+        "left": (0, -1),
+        "right": (0, 1),
+    }
 
-    top_block.seen = bottom_block.seen = left_block.seen = right_block.seen = True
+    blocks: dict[str, Block] = {
+        direction: get_or_generate_block(cfg, session, height + dh, column + dc)
+            for (direction, (dh, dc)) in deltas.items()
+    }
 
-    if top_block.block_id in LAVA_BLOCKS:
-        if top_block.block_id is BlockId.LAVA:
-            top_block.block_id = BlockId.LAVATOP
-        elif top_block.block_id is BlockId.LAVARIGHT:
-            top_block.block_id = BlockId.LAVATOPRIGHT
+    conversions: dict[str, dict[BlockId, BlockId]] = {
+        "top": {
+            BlockId.LAVA: BlockId.LAVATOP,
+            BlockId.LAVARIGHT: BlockId.LAVATOPRIGHT,
+        },
+        "bottom": {
+            BlockId.LAVA: BlockId.LAVABOTTOM,
+            BlockId.LAVARIGHT: BlockId.LAVABOTTOMRIGHT,
+        },
+        "left": {
+            BlockId.LAVA: BlockId.LAVALEFT,
+            BlockId.LAVABOTTOM: BlockId.LAVABOTTOMLEFT,
+            BlockId.LAVATOP: BlockId.LAVATOPLEFT,
+            BlockId.LAVABOTTOMRIGHT: BlockId.COBBLESTONE,
+            BlockId.LAVATOPRIGHT: BlockId.COBBLESTONE,
+        },
+        "right": {
+            BlockId.LAVA: BlockId.LAVARIGHT,
+        },
+    }
 
-    if bottom_block.block_id in LAVA_BLOCKS:
-        if bottom_block.block_id is BlockId.LAVA:
-            bottom_block.block_id = BlockId.LAVABOTTOM
-        elif bottom_block.block_id is BlockId.LAVARIGHT:
-            bottom_block.block_id = BlockId.LAVABOTTOMRIGHT
-
-    if left_block.block_id in LAVA_BLOCKS:
-        if left_block.block_id is BlockId.LAVA:
-            left_block.block_id = BlockId.LAVALEFT
-        elif left_block.block_id is BlockId.LAVABOTTOM:
-            left_block.block_id = BlockId.LAVABOTTOMLEFT
-        elif left_block.block_id is BlockId.LAVATOP:
-            left_block.block_id = BlockId.LAVATOPLEFT
-        elif left_block.block_id in [BlockId.LAVABOTTOMRIGHT, BlockId.LAVATOPRIGHT]:
-            left_block.block_id = BlockId.COBBLESTONE
-
-    if right_block.block_id in LAVA_BLOCKS:
-        if right_block.block_id is BlockId.LAVA:
-            right_block.block_id = BlockId.LAVARIGHT
+    for direction_, conversion in conversions.items():
+        block = blocks[direction_]
+        block.seen = True
+        
+        for block_before, block_after in conversion.items():
+            if block.block_id == block_before:
+                block.block_id = block_after
+                break
 
 
 def get_or_generate_block(
@@ -192,7 +201,7 @@ def move(cfg: MineConfig, session: MineSession, direction: Direction) -> MoveRes
     death_reason: str | None = None
     cat_model = BlockId.CAT
 
-    # rewrite
+
     if target_block in LAVA_BLOCKS:
         cat_model = BlockId.CATLAVA
 
