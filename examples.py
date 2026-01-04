@@ -36,6 +36,10 @@ with open("data.bin", "wb") as f:
     f.write(b"\x00\x01\x02")
 
 
+def func(*args, **kwargs):
+    pass
+
+
 class Player:
     @property
     def hp(self):
